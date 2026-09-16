@@ -46,6 +46,36 @@ Activating the keyset is worth doing **even if you never build the sync app**.
 
 ## Two very different products
 
+## Scope note: listing mirror is not the same as quantity sync
+
+Two features get bundled under "sync," and they differ enormously in cost:
+
+| | eBay → Square | Square → eBay |
+|---|---|---|
+| **Create/update the listing** (photos, title, description, price) | Feasible | Expensive |
+| **Sync quantity / retire when sold** | Feasible | Feasible |
+
+The asymmetry is in listing *creation*, and it is not about API difficulty — it
+is about data that only exists on one side.
+
+An eBay listing carries everything Square needs: title, description, price,
+condition, photos. `GetSellerList` already returns all of it, and
+`bin/fetch-ebay-photos.mjs` already writes it to `data/ebay-listings.json`.
+Creating the matching Square item is a `CreateCatalogObject` call plus the image
+upload this repo already does.
+
+Going the other way, eBay demands a category, the category's *required* item
+specifics (which vary per category), a condition ID, and shipping/return/payment
+business policies. Square holds none of that. Nothing can infer "Brand: Vera
+Bradley, Type: Tumbler, Capacity: 24 oz" from a Square catalog row. Building
+Square → eBay listing creation means building a listing composer with
+per-category item-specific forms — a bigger project than everything else here
+combined.
+
+The practical shape: **eBay is the system of record for listing content, Square
+mirrors it. Quantity flows both ways.** That matches how the business already
+works — items get listed on eBay first, with the full detail eBay requires.
+
 ### A. A private sync tool for Pixy Dust Finds
 
 Realistic. Single-tenant, one seller, your own credentials, no marketplace
@@ -56,13 +86,25 @@ Shape:
 - A small always-on service (a $5–10/mo VPS, or your desktop — it needs uptime,
   not the 5950X).
 - `EB-<id>` already links the two catalogs. That work is done.
-- **eBay → Square:** eBay Platform Notifications (`ItemSold`,
-  `FixedPriceEndOfTransaction`) hit a webhook; look up the SKU; call Square's
-  `BatchChangeInventory`.
-- **Square → eBay:** Square `inventory.count.updated` webhook; call eBay
-  `ReviseInventoryStatus`.
-- A reconciliation sweep every few minutes, because webhooks get dropped and a
-  missed decrement is an oversell.
+- **New eBay listing → Square item.** eBay's `ItemListed` notification fires
+  whenever a seller lists or relists. Pull the item, create the Square catalog
+  object with SKU `EB-<id>`, upload the photos. `ItemRevised` fires on edits and
+  updates the same item.
+- **Sold on eBay → Square.** `ItemSold` / `ItemOutOfStock`; look up the SKU; call
+  Square's `BatchChangeInventory`.
+- **Sold on Square → eBay.** Square's `inventory.count.updated` webhook; call
+  eBay `ReviseInventoryStatus` to set quantity 0.
+- A reconciliation sweep every few minutes, because notifications get dropped and
+  a missed decrement is an oversell.
+
+**Retire listings by zeroing quantity, not by ending them.** With eBay's
+out-of-stock control enabled, a fixed-price GTC listing at quantity 0 stays alive
+but hidden: the item ID, watchers, sales history and search standing survive, and
+restocking is a single quantity change. `EndFixedPriceItem` is irreversible by
+comparison — relisting mints a new item ID, breaks the `EB-<id>` mapping, and
+discards the listing's history. A sync bug that zeroes a quantity is an
+inconvenience; the same bug wired to `EndFixedPriceItem` destroys listings in
+bulk with no undo.
 
 The hard parts are not the API calls:
 
@@ -110,6 +152,22 @@ years of edge cases, at $35–39/mo.
 
 Building it yourself is a fine choice; it is just worth making it because you
 want to own it, not because Trunk is presumed not to fit.
+
+## On "real time"
+
+Near-real-time, not instant, and the difference is worth understanding before
+you rely on it.
+
+Platform notifications and Square webhooks typically arrive in seconds, but they
+are best-effort: they can be delayed, delivered more than once, or dropped
+entirely. That is why the reconciliation sweep is not optional polish — it is the
+thing that catches the missed decrement before it becomes an oversell.
+
+And for quantity-1 items there is an irreducible race. If someone buys the same
+object on eBay and at your counter within the same second, no architecture
+prevents it; sync shrinks the window from hours to seconds, it does not close it.
+Plan for the rare double-sale as a business process (which channel you honour,
+how you apologise), not as a bug to engineer away.
 
 ## Sources
 
