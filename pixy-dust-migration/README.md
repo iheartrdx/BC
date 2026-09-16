@@ -4,14 +4,21 @@ Continuation of the ChatGPT session archived as
 `Pixy_Dust_eBay_Square_Session_Backup_2026-09-15`. Read
 [FINDINGS.md](./FINDINGS.md) for what changed and why.
 
-The pipeline is four commands. Each one is resumable and safe to re-run: state
+The pipeline is four stages. Each one is resumable and safe to re-run: state
 lives in append-only ledgers under `data/`, so an interrupted run costs at most
 one item.
 
 ```
-reconcile  →  collect  →  upload  →  verify
- (exports)    (photo urls)  (into Square)  (against live catalog)
+reconcile  →  collect | fetch-ebay-photos  →  upload  →  verify
+ (exports)    (scrape) | (eBay API)           (Square)   (live catalog)
 ```
+
+Stage 1 has two interchangeable implementations that emit the same
+`data/photo-map.json`. **Prefer the API route** — see
+[Recommended: skip the scraper](#recommended-skip-the-scraper).
+
+For what a Trunk-style inventory-sync app would take, see
+[TRUNK-LIKE-APP.md](./TRUNK-LIKE-APP.md).
 
 ## Setup
 
@@ -86,6 +93,36 @@ npm run catalog -- --reconcile data/reconcile.json --out extension-v0.2/catalog.
 Load unpacked from `chrome://extensions` with Developer mode on. The Playwright
 collector is the more reliable path for a long run — the extension's workers
 still die with their tab.
+
+## 2b. Recommended: skip the scraper
+
+`GetSellerList` returns `PictureDetails.PictureURL[]` for every active listing,
+so the whole scraping stage collapses into roughly five API calls:
+
+```bash
+EBAY_AUTH_TOKEN=... npm run photos
+```
+
+This writes the same `data/photo-map.json` the scraper does, plus
+`data/ebay-listings.json` (titles, SKUs, quantities, prices) which covers the 35
+listings that have no Square item yet.
+
+It needs an activated production keyset. That is gated on the eBay marketplace
+account-deletion/closure notification requirement — a **developer keyset**
+requirement, not a seller-account risk, and satisfiable either by an exemption
+toggle or by hosting this endpoint:
+
+```bash
+EBAY_VERIFICATION_TOKEN=<32-80 chars of [A-Za-z0-9_-]> \
+EBAY_ENDPOINT_URL=https://your.host/ebay/deletion \
+node bin/ebay-deletion-endpoint.mjs --port 8080
+```
+
+It answers eBay's challenge with `sha256(challengeCode + verificationToken +
+endpointUrl)` — that order, and the URL byte-identical to what you registered, or
+validation fails with no useful error. `createDeletionHandler` is exported for
+deployment as a serverless function. Seven tests cover the hashing order, the
+trailing-slash trap, and acknowledging before downstream work runs.
 
 ## 3. Upload to Square
 

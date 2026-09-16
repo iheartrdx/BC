@@ -156,3 +156,36 @@ Seller Hub's **File Exchange** listing download is a different report from the
 `PicURL` column. If your account offers it, that is one CSV download instead of
 390 page loads. I could not verify it against your account from here — it is
 worth two minutes before starting a long run.
+
+---
+
+## Addendum: the eBay API decision is worth revisiting
+
+§3B of the archive abandoned the eBay Trading API because the production keyset
+required marketplace account-deletion/closure notification compliance, and §9
+records this as protecting the seller account from risk.
+
+That conflates two things. The requirement is on the **developer keyset**. It
+carries no seller-account exposure — non-compliance costs API access, nothing
+else. And it has two exits, either of which activates the keyset:
+
+- **Opt out.** Toggle "Not persisting eBay data" in the developer portal, pick
+  an exemption reason, submit.
+- **Subscribe.** Host an HTTPS endpoint that answers a challenge with
+  `sha256(challengeCode + verificationToken + endpointUrl)` and accepts
+  notifications. Implemented and tested here as
+  `bin/ebay-deletion-endpoint.mjs` — about 40 lines.
+
+This matters more than it looks, because the keyset gates `GetSellerList`, which
+returns `PictureDetails.PictureURL[]` for every active listing. The whole
+collector — mobile bookmarklets v1 through v3.4, the desktop extension, the
+Playwright rewrite, the interruption backoff, 390 page loads — exists to
+reconstruct data that one paginated API call returns directly, and returns
+*correctly*: no similar-items contamination, no missed galleries on slow pages,
+no blocked listings, and the 34 ended listings simply are not in the response.
+
+`bin/fetch-ebay-photos.mjs` is that path. It emits the identical
+`photo-map.json`, so `upload-square.mjs` consumes either source unchanged.
+
+The scraping tooling stays in the repo as the fallback for anyone who does not
+want a developer keyset at all. But it should not be the first choice.
