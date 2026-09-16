@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Pixy Dust eBay Photo Collector",
+  "version": "0.2.0",
+  "description": "Desktop collector for eBay listing gallery image URLs with checkpoints, pause/resume, retries, and export.",
+  "permissions": [
+    "storage",
+    "downloads",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.ebay.com/*"
+  ],
+  "action": {
+    "default_title": "Pixy Dust eBay Photo Collector",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.ebay.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
