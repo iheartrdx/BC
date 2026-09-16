@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixy Dust eBay Photo Collector</title>
+<style>
+body{font-family:Arial,sans-serif;width:430px;margin:0;background:#f5f6f7;color:#171717}
+main{padding:16px}.card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px;margin-bottom:12px}
+h1{font-size:20px;margin:0 0 12px}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+button{padding:10px 12px;border:0;border-radius:8px;background:#111;color:#fff;font-weight:700;cursor:pointer}
+button.secondary{background:#e9eaec;color:#111}button.warn{background:#8a1c1c}
+textarea{width:100%;box-sizing:border-box;height:110px;border:1px solid #bbb;border-radius:8px;padding:8px;font:12px monospace}
+select{padding:9px;border:1px solid #bbb;border-radius:8px;background:#fff}
+.progress{height:12px;background:#ddd;border-radius:20px;overflow:hidden;margin:8px 0}.bar{height:100%;width:0;background:#111}
+.big{font-size:22px;font-weight:700}.muted{color:#666;font-size:12px}.statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat{background:#f5f6f7;border-radius:8px;padding:8px}.label{font-size:11px;color:#666}.value{font-size:17px;font-weight:700}
+.ok{color:#147a35}.bad{color:#9d1b1b}
+</style></head><body><main>
+<h1>Pixy Dust eBay Photo Collector</h1>
+<div class="card">
+<div class="row"><button id="load424">Load Current 424</button>
+<select id="workers"><option value="1">1 worker</option><option value="2">2 workers</option><option value="3" selected>3 workers</option><option value="4">4 workers</option></select></div>
+<div class="muted" style="margin-top:8px">Start with 3 workers. Your PC can handle more; eBay is the limiting factor.</div>
+</div>
+<div class="card">
+<textarea id="ids" placeholder="Paste eBay item numbers here, one per line"></textarea>
+<div class="row" style="margin-top:8px"><button id="start">Start / Resume</button><button id="pause" class="secondary">Pause</button></div>
+</div>
+<div class="card">
+<div class="big" id="headline">Idle</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div id="detail" class="muted">Open ebay.com in a normal Chrome tab before starting.</div>
+<div class="statgrid" style="margin-top:10px">
+<div class="stat"><div class="label">Completed</div><div class="value" id="completed">0</div></div>
+<div class="stat"><div class="label">Remaining</div><div class="value" id="remaining">0</div></div>
+<div class="stat"><div class="label">Success</div><div class="value ok" id="success">0</div></div>
+<div class="stat"><div class="label">Failed</div><div class="value bad" id="failed">0</div></div>
+<div class="stat"><div class="label">Photos</div><div class="value" id="photos">0</div></div>
+<div class="stat"><div class="label">Retries</div><div class="value" id="retries">0</div></div>
+</div>
+<div class="muted" style="margin-top:8px" id="timing"></div>
+</div>
+<div class="card">
+<div class="row"><button id="export" class="secondary">Export JSON</button><button id="retryFailed" class="secondary">Load Failed Only</button></div>
+<button id="clear" class="warn" style="width:100%;margin-top:8px">Clear Saved Run</button>
+</div>
+<script src="catalog.js"></script><script src="popup.js"></script></main></body></html>

@@ -1,0 +1,28 @@
+{
+  "name": "pixy-dust-migration",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "eBay -> Square catalog photo migration toolkit for Pixy Dust Finds.",
+  "scripts": {
+    "reconcile": "node bin/reconcile.mjs",
+    "collect": "node bin/collect.mjs",
+    "photos": "node bin/fetch-ebay-photos.mjs",
+    "ebay-endpoint": "node bin/ebay-deletion-endpoint.mjs",
+    "upload": "node bin/upload-square.mjs",
+    "verify": "node bin/verify.mjs",
+    "test": "node --test test/*.test.mjs",
+    "catalog": "node bin/make-catalog.mjs",
+    "postinstall-browser": "playwright install chromium"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.11.1"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.47.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
